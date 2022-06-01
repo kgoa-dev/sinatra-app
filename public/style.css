@@ -1,0 +1,20 @@
+body {
+  background-color : #d77070;
+}
+
+.btn--orange,
+a.btn--orange {
+  color: #fff;
+  background-color: #fa8f44;
+}
+.btn--orange:hover,
+a.btn--orange:hover {
+  color: #fff;
+  background: #f56500;
+}
+
+.main {
+  width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
