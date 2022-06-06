@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <title>Memo Detail</title>
+  </head>
+  <body>
+    <h1>メモアプリ</h1>
+    <h3>タイトル</h3>
+    <p><%= @detail["title"] %></p>
+    <h3>内容</h3>
+    <p><%= @detail["content"] %></p>
+
+
+    <form method="get" action="/">
+      <button type= "submit">キャンセル</button>
+    </form>
+    <form action="/edit/<%= @detail["id"] %>" method="post">
+      <button type= "submit">変更</button>
+    </form>
+    <form method="post" action="/delete/<%= @detail["id"] %>">
+      <input type="hidden" name="_method" value="DELETE">
+      <button type= "submit">削除</button>
+    </form>
+  </body>
+</html>
