@@ -5,22 +5,33 @@
 
 require 'sinatra'
 require 'sinatra/reloader'
-require 'json'
 require 'pg'
+require 'dotenv'
+require 'securerandom'
 
 enable :method_override
 
-# JSONファイルからデータ入手
-memos = []
-File.open('data.json') do |f|
-  memos = JSON.parse(f.read)
-end
+# DBとの接続
+results = []
+Dotenv.load
+
+db = ENV['db']
+host = ENV['host']
+user = ENV['user']
+pass = ENV['pass']
+port = ENV['port']
+
+connection = PG::Connection.new(host: host, port: port, dbname: db, user: user, password: pass)
 
 # TOP画面（メモ一覧表示）
 get '/' do
+  results = connection.exec("SELECT * FROM kgoa.todo ORDER BY id ASC").each.map do |conn|
+    {"id"=> conn['id'].to_i, "title"=> conn["title"], "content"=> conn["content"]}
+  end
+
   @title = 'メモアプリ'
-  @subtitle = 'Welcome to the world of sinatra and ruby.'
-  @memos = memos ? memos['memo'] : []
+  @sub = results
+  @memos = results || []
   erb :index
 end
 
@@ -32,7 +43,7 @@ end
 
 get '/memo/*' do |id|
   detail = []
-  memos['memo'].each do |f|
+  results.each do |f|
     detail = f if f['id'] == id.to_i
   end
 
@@ -47,17 +58,13 @@ get '/add' do
 end
 
 post '/new' do
-  new_id = memos ? memos['memo'].size : 0
-  new_memo = { 'id' => new_id, 'title' => @params['title'], 'content' => @params['content'] }
-  if memos
-    memos['memo'] << new_memo
-  else
-    memos = { 'memo' => [new_memo] }
-  end
+  new_id = SecureRandom.random_number(500)
 
-  File.open('data.json', 'w') do |f|
-    JSON.dump(memos, f)
-  end
+  title = @params['title']
+  content = @params['content']
+
+  connection.exec("INSERT INTO kgoa.todo values
+    (#{new_id}, '#{title}', '#{content}')")
 
   redirect '/'
   erb :index
@@ -70,25 +77,20 @@ end
 
 get '/edit/*' do |id|
   @id = id
-  select = []
-  memos['memo'].each do |f|
-    select << f if f['id'] == id.to_i
-  end
-  @memo = select[0]
+  sel = connection.exec("SELECT * FROM kgoa.todo
+    WHERE id='#{id}' ")
+
+  @title = sel[0]['title']
+  @content = sel[0]['content']
   erb :edit_memo
 end
 
 patch '/change/*' do |id|
-  memos['memo'].each do |f|
-    if f['id'] == id.to_i
-      f['title'] = @params['title']
-      f['content'] = @params['content']
-    end
-  end
+  title = @params['title']
+  content = @params['content']
 
-  File.open('data.json', 'w') do |f|
-    JSON.dump(memos, f)
-  end
+  connection.exec("UPDATE kgoa.todo
+    SET title='#{title}', content='#{content}' where id='#{id}' ")
 
   redirect '/'
   erb :index
@@ -96,19 +98,7 @@ end
 
 # メモの削除
 delete '/delete/*' do |id|
-  keep = []
-  i = 0
-  memos['memo'].each do |f|
-    if f['id'] != id.to_i
-      keep << { 'id' => i, 'title' => f['title'], 'content' => f['content'] }
-      i += 1
-    end
-  end
-
-  File.open('data.json', 'w') do |f|
-    memos = { 'memo' => keep }
-    JSON.dump(memos, f)
-  end
+  connection.exec("DELETE FROM kgoa.todo WHERE id='#{id}' ")
 
   redirect '/'
   erb :index
