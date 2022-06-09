@@ -1,33 +1,19 @@
-<!DOCTYPE html>
-<html lang="ja">
-  <head>
-    <meta charset="utf-8">
-    <title>Top</title>
-    <link rel="stylesheet" href="style.css">
-  </head>
-  <body>
-    <div class="main">
-      <h1><%= @title %></h1>
-
-      <% if @memos.size > 0 then %>
-        <ul>
-          <% @memos.each do |memo| %>
-            <li memo-id= "<%= memo["id"] %>">
-            <form action="/detail/<%= memo["id"] %>" method="post">
-              <button type="submit" name="id" value="<%= memo["id"] %>">
-                <%= memo["title"] %>
-              </button>
-            </form>
-            </li>
-          <% end %>
-        </ul>
-      <% else %>
-        <p>メモはありません。</p>
-      <% end %>
-
-      <form method="get" action="/add">
-        <button type= "submit" value="追加" class="btn btn--orange">追加</button>
+<% if @memos.size > 0 then %>
+  <ul>
+    <% @memos.each do |memo| %>
+      <li memo-id= "<%= memo["id"] %>">
+      <form action="/memos/<%= memo["id"] %>" method="get">
+        <button type="submit" name="id" value="<%= memo["id"] %>">
+          <%= memo["title"] %>
+        </button>
       </form>
-    </div>
-  </body>
-</html>
+      </li>
+    <% end %>
+  </ul>
+<% else %>
+  <p>メモはありません。</p>
+<% end %>
+
+<form method="get" action="/add">
+  <button type= "submit" value="追加" class="btn btn--orange">追加</button>
+</form>
