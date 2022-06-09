@@ -1,16 +1,16 @@
 
 <h3>タイトル</h3>
-<p><%= @memo_detail["title"] %></p>
+<p><%= @memo["title"] %></p>
 <h3>内容</h3>
-<p><%= @memo_detail["content"] %></p>
+<p><%= @memo["content"] %></p>
 
 <form method="get" action="/">
   <button type= "submit">キャンセル</button>
 </form>
-<form action="/edit/<%= @memo_detail["id"] %>" method="get">
+<form action="/edit/<%= @memo["id"] %>" method="get">
   <button type= "submit">変更</button>
 </form>
-<form method="post" action="/memos/<%= @memo_detail["id"] %>">
+<form method="post" action="/memos/<%= @memo["id"] %>">
   <input type="hidden" name="_method" value="DELETE">
   <button type= "submit">削除</button>
 </form>

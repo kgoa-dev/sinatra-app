@@ -1,12 +1,10 @@
-<% if @memos.size > 0 then %>
+<% if @memos.size > 0%>
   <ul>
     <% @memos.each do |memo| %>
       <li memo-id= "<%= memo["id"] %>">
-      <form action="/memos/<%= memo["id"] %>" method="get">
-        <button type="submit" name="id" value="<%= memo["id"] %>">
+        <a href='/memos/<%= memo["id"] %>?_method=GET' >
           <%= memo["title"] %>
-        </button>
-      </form>
+        </a>
       </li>
     <% end %>
   </ul>

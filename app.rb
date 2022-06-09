@@ -1,58 +1,57 @@
 # frozen_string_literal: true
 
-# require 'debug'
-# binding.break
-
 require 'sinatra'
 require 'sinatra/reloader'
 require 'json'
 require 'pg'
+require 'cgi/escape'
 
 enable :method_override
 
-# JSONファイルからデータ入手
-memos = []
-File.open('data.json') do |f|
-  memos = JSON.parse(f.read)
+# JSONファイルからデータ入手する関数
+def read_data
+  File.open('data.json') do |data|
+    JSON.parse(data.read)
+  end
 end
 
 # TOP画面（メモ一覧表示）
 get '/' do
-  @title = 'メモアプリ'
-  @subtitle = 'Welcome to the world of sinatra and ruby.'
-  @memos = memos ? memos['memo'] : []
+  memos = read_data
+  @title = 'Top'
+  @memos = memos || []
   erb :index
 end
 
 # メモの詳細画面
-post '/detail/*' do |id|
-  redirect "/memo/#{id}"
-  erb :show_detail
-end
-
-get '/memo/*' do |id|
+get '/memos/*' do |id|
   detail = []
-  memos['memo'].each do |f|
-    detail = f if f['id'] == id.to_i
+  read_data.each do |memo|
+    detail = memo if memo['id'] == id.to_i
   end
 
-  @detail = detail
+  @title = 'Show'
+  @memo = detail
   erb :show_detail
 end
 
 # メモの追加
 get '/add' do
-  @title = 'メモアプリ'
+  @title = 'Add'
   erb :add_memo
 end
 
-post '/new' do
-  new_id = memos ? memos['memo'].size : 0
-  new_memo = { 'id' => new_id, 'title' => @params['title'], 'content' => @params['content'] }
+post '/memos' do
+  memos = read_data
+  new_id = memos ? memos.size : 0
+  title = CGI.escapeHTML(@params['title'])
+  content = CGI.escapeHTML(@params['content'])
+  new_memo = { 'id' => new_id, 'title' => title, 'content' => content }
+
   if memos
-    memos['memo'] << new_memo
+    memos << new_memo
   else
-    memos = { 'memo' => [new_memo] }
+    memos = [new_memo]
   end
 
   File.open('data.json', 'w') do |f|
@@ -60,29 +59,26 @@ post '/new' do
   end
 
   redirect '/'
-  erb :index
 end
 
 # メモの編集
-post '/edit/*' do |id|
-  redirect "/edit/#{id}"
-end
-
 get '/edit/*' do |id|
-  @id = id
   select = []
-  memos['memo'].each do |f|
-    select << f if f['id'] == id.to_i
+  read_data.each do |memo|
+    select << memo if memo['id'] == id.to_i
   end
+
+  @title = 'Edit'
   @memo = select[0]
   erb :edit_memo
 end
 
-patch '/change/*' do |id|
-  memos['memo'].each do |f|
-    if f['id'] == id.to_i
-      f['title'] = @params['title']
-      f['content'] = @params['content']
+patch '/memos/*' do |id|
+  memos = read_data
+  memos.each do |memo|
+    if memo['id'] == id.to_i
+      memo['title'] = CGI.escapeHTML(@params['title'])
+      memo['content'] = CGI.escapeHTML(@params['content'])
     end
   end
 
@@ -91,25 +87,32 @@ patch '/change/*' do |id|
   end
 
   redirect '/'
-  erb :index
 end
 
 # メモの削除
-delete '/delete/*' do |id|
-  keep = []
+delete '/memos/*' do |id|
+  keeps = []
+  memos = read_data
   i = 0
-  memos['memo'].each do |f|
-    if f['id'] != id.to_i
-      keep << { 'id' => i, 'title' => f['title'], 'content' => f['content'] }
+  memos.each do |memo|
+    if memo['id'] != id.to_i
+      keeps << { 'id' => i, 'title' => memo['title'], 'content' => memo['content'] }
       i += 1
     end
   end
 
   File.open('data.json', 'w') do |f|
-    memos = { 'memo' => keep }
-    JSON.dump(memos, f)
+    JSON.dump(keeps, f)
   end
 
   redirect '/'
-  erb :index
+end
+
+# エラーページ
+not_found do
+  erb :not_found
+end
+
+error do
+  erb :not_found
 end
