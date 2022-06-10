@@ -1,8 +1,8 @@
 <% if @memos.size > 0%>
   <ul>
     <% @memos.each do |memo| %>
-      <li memo-id= "<%= memo["id"] %>">
-        <a href='/memos/<%= memo["id"] %>?_method=GET' >
+      <li>
+        <a href='/memos/<%= memo["id"] %>' >
           <%= memo["title"] %>
         </a>
       </li>

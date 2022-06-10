@@ -3,11 +3,8 @@
 require 'sinatra'
 require 'sinatra/reloader'
 require 'json'
-require 'pg'
 require 'cgi/escape'
-require 'debug'
-
-enable :method_override
+require 'securerandom'
 
 # JSONファイルからデータ入手する関数
 def read_data
@@ -16,30 +13,27 @@ def read_data
   end
 end
 
+def escaping(memos)
+  memos.each do |m|
+    m['title'] = CGI.escapeHTML(m['title'])
+    m['content'] = CGI.escapeHTML(m['content'])
+  end
+end
+
 # TOP画面（メモ一覧表示）
 get '/' do
-  memos = read_data
-  @title = 'Top'
+  memos = escaping(read_data)
   @memos = memos || []
   erb :index
 end
 
 # メモの詳細画面
 get '/memos/*' do |id|
-  #binding.break
-  detail = []
-  read_data.each do |memo|
-    detail = memo if memo['id'].to_i == id.to_i
-  end
-
+  memo = read_data.detect { |m| m['id'].to_i == id.to_i }
+  halt erb :not_found if memo.nil?
+  @memo = escaping([memo])[0]
   @title = 'Show'
-  @memo = detail
-
-  if detail != []
-    erb :show_detail
-  else
-    erb :not_found
-  end
+  erb :show_detail
 end
 
 # メモの追加
@@ -50,9 +44,9 @@ end
 
 post '/memos' do
   memos = read_data
-  new_id = memos ? memos.size : 0
-  title = CGI.escapeHTML(@params['title'])
-  content = CGI.escapeHTML(@params['content'])
+  new_id = SecureRandom.random_number(500)
+  title = @params['title']
+  content = @params['content']
   new_memo = { 'id' => new_id, 'title' => title, 'content' => content }
 
   if memos
@@ -70,13 +64,11 @@ end
 
 # メモの編集
 get '/edit/*' do |id|
-  select = []
-  read_data.each do |memo|
-    select << memo if memo['id'] == id.to_i
-  end
+  memo = read_data.detect { |m| m['id'].to_i == id.to_i }
+  halt erb :not_found if memo.nil?
 
+  @memo = escaping([memo])[0]
   @title = 'Edit'
-  @memo = select[0]
   erb :edit_memo
 end
 
@@ -84,8 +76,8 @@ patch '/memos/*' do |id|
   memos = read_data
   memos.each do |memo|
     if memo['id'] == id.to_i
-      memo['title'] = CGI.escapeHTML(@params['title'])
-      memo['content'] = CGI.escapeHTML(@params['content'])
+      memo['title'] = @params['title']
+      memo['content'] = @params['content']
     end
   end
 
@@ -98,15 +90,7 @@ end
 
 # メモの削除
 delete '/memos/*' do |id|
-  keeps = []
-  memos = read_data
-  i = 0
-  memos.each do |memo|
-    if memo['id'] != id.to_i
-      keeps << { 'id' => i, 'title' => memo['title'], 'content' => memo['content'] }
-      i += 1
-    end
-  end
+  keeps = read_data.keep_if { |m| m['id'] != id.to_i }
 
   File.open('data.json', 'w') do |f|
     JSON.dump(keeps, f)
