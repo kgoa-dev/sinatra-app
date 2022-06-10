@@ -5,6 +5,7 @@ require 'sinatra/reloader'
 require 'json'
 require 'pg'
 require 'cgi/escape'
+require 'debug'
 
 enable :method_override
 
@@ -25,14 +26,20 @@ end
 
 # メモの詳細画面
 get '/memos/*' do |id|
+  #binding.break
   detail = []
   read_data.each do |memo|
-    detail = memo if memo['id'] == id.to_i
+    detail = memo if memo['id'].to_i == id.to_i
   end
 
   @title = 'Show'
   @memo = detail
-  erb :show_detail
+
+  if detail != []
+    erb :show_detail
+  else
+    erb :not_found
+  end
 end
 
 # メモの追加
