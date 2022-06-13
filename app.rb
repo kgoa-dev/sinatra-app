@@ -13,17 +13,18 @@ def read_data
   end
 end
 
-def escaping(memos)
-  memos.each do |m|
-    m['title'] = CGI.escapeHTML(m['title'])
-    m['content'] = CGI.escapeHTML(m['content'])
+def escaping_memos(memos)
+  memos.each.map do |m|
+    esc_title = CGI.escapeHTML(m['title'])
+    esc_content = CGI.escapeHTML(m['content'])
+    { 'id' => m['id'], 'title' => esc_title, 'content' => esc_content }
   end
 end
 
 # TOP画面（メモ一覧表示）
 get '/' do
-  memos = escaping(read_data)
-  @memos = memos || []
+  memos = read_data
+  @memos = escaping_memos(memos) || []
   erb :index
 end
 
@@ -31,7 +32,7 @@ end
 get '/memos/*' do |id|
   memo = read_data.detect { |m| m['id'].to_i == id.to_i }
   halt erb :not_found if memo.nil?
-  @memo = escaping([memo])[0]
+  @memo = escaping_memos([memo])[0]
   @title = 'Show'
   erb :show_detail
 end
@@ -42,9 +43,16 @@ get '/add' do
   erb :add_memo
 end
 
+def new_id
+  create_id = SecureRandom.random_number(500)
+rescue StandardError
+  retry if read_data.all { |m| m['id'] == create_id }
+end
+
 post '/memos' do
   memos = read_data
-  new_id = SecureRandom.random_number(500)
+  redirect '/' if read_data.size >= 500
+
   title = @params['title']
   content = @params['content']
   new_memo = { 'id' => new_id, 'title' => title, 'content' => content }
@@ -67,7 +75,7 @@ get '/edit/*' do |id|
   memo = read_data.detect { |m| m['id'].to_i == id.to_i }
   halt erb :not_found if memo.nil?
 
-  @memo = escaping([memo])[0]
+  @memo = escaping_memos([memo])[0]
   @title = 'Edit'
   erb :edit_memo
 end
