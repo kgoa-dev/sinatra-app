@@ -37,8 +37,6 @@ get '/' do
     { 'id' => memo['id'].to_i, 'title' => memo['title'], 'content' => memo['content'] }
   end
   @memos = escaping_memos(results) || []
-  erb :index
-end
 
 # メモの詳細画面
 get '/memos/*' do |id|
@@ -46,6 +44,7 @@ get '/memos/*' do |id|
   halt erb :not_found if memo.nil?
   @memo = escaping_memos([memo])[0]
   @title = 'Show'
+
   erb :show_detail
 end
 
