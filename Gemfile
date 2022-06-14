@@ -3,6 +3,7 @@
 source 'https://rubygems.org'
 
 gem 'debug'
+gem 'dotenv'
 gem 'pg'
 gem 'puma'
 gem 'sinatra'
