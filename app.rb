@@ -4,7 +4,6 @@ require 'sinatra'
 require 'sinatra/reloader'
 require 'json'
 require 'cgi/escape'
-require 'securerandom'
 
 # JSONファイルからデータ入手する関数
 def read_data
@@ -14,7 +13,7 @@ def read_data
 end
 
 def escaping_memos(memos)
-  memos.each.map do |m|
+  memos.map do |m|
     esc_title = CGI.escapeHTML(m['title'])
     esc_content = CGI.escapeHTML(m['content'])
     { 'id' => m['id'], 'title' => esc_title, 'content' => esc_content }
@@ -43,16 +42,9 @@ get '/add' do
   erb :add_memo
 end
 
-def new_id
-  create_id = SecureRandom.random_number(500)
-rescue StandardError
-  retry if read_data.all { |m| m['id'] == create_id }
-end
-
 post '/memos' do
   memos = read_data
-  redirect '/' if read_data.size >= 500
-
+  new_id = memos ? memos.size : 0
   title = @params['title']
   content = @params['content']
   new_memo = { 'id' => new_id, 'title' => title, 'content' => content }
@@ -99,6 +91,9 @@ end
 # メモの削除
 delete '/memos/*' do |id|
   keeps = read_data.keep_if { |m| m['id'] != id.to_i }
+  keeps.each_with_index do |keep, idx|
+    keep['id'] = idx
+  end
 
   File.open('data.json', 'w') do |f|
     JSON.dump(keeps, f)
