@@ -6,8 +6,6 @@ require 'pg'
 require 'dotenv'
 require 'cgi/escape'
 
-require 'debug'
-
 # DBとの接続
 def connection_db
   Dotenv.load
@@ -59,7 +57,6 @@ end
 
 post '/memos' do
   memos = read_db
-  #debugger
   new_id = memos[0].nil? ? 0 : memos.size
   title = @params['title']
   content = @params['content']
