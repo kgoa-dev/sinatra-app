@@ -5,7 +5,8 @@ require 'sinatra/reloader'
 require 'pg'
 require 'dotenv'
 require 'cgi/escape'
-require 'securerandom'
+
+require 'debug'
 
 # DBとの接続
 def connection_db
@@ -20,11 +21,12 @@ def connection_db
 end
 
 def read_db
-  connection_db.exec('SELECT * FROM kgoa.todo')
+  memos = connection_db.exec('SELECT * FROM kgoa.todo')
+  memos.map {|m| m}
 end
 
 def escaping_memos(memos)
-  memos.each.map do |m|
+  memos.map do |m|
     esc_title = CGI.escapeHTML(m['title'])
     esc_content = CGI.escapeHTML(m['content'])
     { 'id' => m['id'], 'title' => esc_title, 'content' => esc_content }
@@ -55,16 +57,10 @@ get '/add' do
   erb :add_memo
 end
 
-def new_id
-  create_id = SecureRandom.random_number(500)
-rescue StandardError
-  retry if read_data.all { |m| m['id'] == create_id }
-end
-
 post '/memos' do
-  memos = read_db.map{|m| m}
-  redirect '/' if memos.size >= 500
-
+  memos = read_db
+  #debugger
+  new_id = memos[0].nil? ? 0 : memos.size
   title = @params['title']
   content = @params['content']
   connection_db.exec("INSERT INTO kgoa.todo values (#{new_id}, '#{title}', '#{content}')")
@@ -93,6 +89,10 @@ end
 # メモの削除
 delete '/memos/*' do |id|
   connection_db.exec("DELETE FROM kgoa.todo WHERE id='#{id}' ")
+
+  read_db.each_with_index do |memo, i|
+    connection_db.exec("UPDATE kgoa.todo SET id='#{i}' where id='#{memo['id']}' ")
+  end
 
   redirect '/'
 end
