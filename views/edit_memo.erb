@@ -1,0 +1,13 @@
+<form method="post" action="/memos/<%= @memo["id"] %>">
+  <p>タイトル</p>
+    <input type= "text" name="title" value="<%= @memo["title"] %>">
+
+  <p>内容</p>
+    <input type= "text" name="content" value="<%= @memo["content"] %>">
+    <input type="hidden" name="_method" value="PATCH">
+    <button type= "submit">変更</button>
+</form>
+
+<form method="get" action="/">
+  <button type= "submit">キャンセル</button>
+</form>

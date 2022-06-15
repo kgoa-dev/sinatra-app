@@ -1,0 +1,17 @@
+<% if @memos.size > 0%>
+  <ul>
+    <% @memos.each do |memo| %>
+      <li>
+        <a href='/memos/<%= memo["id"] %>' >
+          <%= memo["title"] %>
+        </a>
+      </li>
+    <% end %>
+  </ul>
+<% else %>
+  <p>メモはありません。</p>
+<% end %>
+
+<form method="get" action="/add">
+  <button type= "submit" value="追加" class="btn btn--orange">追加</button>
+</form>
