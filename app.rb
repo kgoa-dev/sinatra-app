@@ -6,6 +6,8 @@ require 'pg'
 require 'dotenv'
 require 'cgi/escape'
 
+require 'debug'
+
 # DBとの接続
 def connection_db
   Dotenv.load
@@ -20,7 +22,7 @@ end
 
 def read_db
   memos = connection_db.exec('SELECT * FROM kgoa.todo')
-  memos.map {|m| m}
+  memos.map { |m| m }
 end
 
 def escaping_memos(memos)
@@ -31,9 +33,13 @@ def escaping_memos(memos)
   end
 end
 
+def esc_id(id)
+  id
+end
+
 # TOP画面（メモ一覧表示）
 get '/' do
-  results = read_db.each.map do |memo|
+  results = read_db.map do |memo|
     { 'id' => memo['id'].to_i, 'title' => memo['title'], 'content' => memo['content'] }
   end
   @memos = escaping_memos(results) || []
@@ -67,7 +73,8 @@ end
 
 # メモの編集
 get '/edit/*' do |id|
-  memo = connection_db.exec("SELECT * FROM kgoa.todo WHERE id='#{id}' ")
+  # debugger
+  memo = connection_db.exec('SELECT * FROM kgoa.todo WHERE id = $1', [id])
   halt erb :not_found if memo.nil?
 
   @memo = escaping_memos([memo][0])[0]
@@ -79,13 +86,13 @@ patch '/memos/*' do |id|
   title = @params['title']
   content = @params['content']
 
-  connection_db.exec("UPDATE kgoa.todo SET title='#{title}', content='#{content}' where id='#{id}' ")
+  connection_db.exec('UPDATE kgoa.todo SET title = $1, content = $2 where id = $3', [title, content, id])
   redirect '/'
 end
 
 # メモの削除
 delete '/memos/*' do |id|
-  connection_db.exec("DELETE FROM kgoa.todo WHERE id='#{id}' ")
+  connection_db.exec('DELETE FROM kgoa.todo WHERE id = $1', [id])
 
   read_db.each_with_index do |memo, i|
     connection_db.exec("UPDATE kgoa.todo SET id='#{i}' where id='#{memo['id']}' ")
