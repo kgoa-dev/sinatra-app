@@ -13,8 +13,12 @@ cd {パス}/sinatra-app
 終了時は`^ + C`で終了。
 
 ### Database
+`PostgreSQL`を利用。
+ユーザーとデータベース作成済みを想定
 ```sql
-{DB名}=# select {スキーマ名}
+{DB名}=# select current_schema;
+または
+{DB名}=# select {スキーマ名};
 
 {DB名}=# create table {テーブル名} (
           id integer,
