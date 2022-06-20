@@ -66,7 +66,7 @@ post '/memos' do
   new_id = memos[0].nil? ? 0 : memos.size
   title = @params['title']
   content = @params['content']
-  connection_db.exec("INSERT INTO kgoa.todo values (#{new_id}, '#{title}', '#{content}')")
+  connection_db.exec('INSERT INTO kgoa.todo values ($1, $2, $3)', [new_id, title, content])
 
   redirect '/'
 end
@@ -95,7 +95,7 @@ delete '/memos/*' do |id|
   connection_db.exec('DELETE FROM kgoa.todo WHERE id = $1', [id])
 
   read_db.each_with_index do |memo, i|
-    connection_db.exec("UPDATE kgoa.todo SET id='#{i}' where id='#{memo['id']}' ")
+    connection_db.exec('UPDATE kgoa.todo SET id=$1 where id=$2', [i, memo['id']])
   end
 
   redirect '/'
