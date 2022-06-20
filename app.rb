@@ -2,14 +2,27 @@
 
 require 'sinatra'
 require 'sinatra/reloader'
-require 'json'
+require 'pg'
+require 'dotenv'
 require 'cgi/escape'
 
-# JSONファイルからデータ入手する関数
-def read_data
-  File.open('data.json') do |data|
-    JSON.parse(data.read)
-  end
+require 'debug'
+
+# DBとの接続
+def connection_db
+  Dotenv.load
+  db = ENV['db']
+  host = ENV['host']
+  user = ENV['user']
+  pass = ENV['pass']
+  port = ENV['port']
+
+  PG::Connection.new(host: host, port: port, dbname: db, user: user, password: pass)
+end
+
+def read_db
+  memos = connection_db.exec('SELECT * FROM kgoa.todo')
+  memos.map { |m| m }
 end
 
 def escaping_memos(memos)
@@ -20,16 +33,22 @@ def escaping_memos(memos)
   end
 end
 
+def esc_id(id)
+  id
+end
+
 # TOP画面（メモ一覧表示）
 get '/' do
-  memos = read_data
-  @memos = escaping_memos(memos) || []
+  results = read_db.map do |memo|
+    { 'id' => memo['id'].to_i, 'title' => memo['title'], 'content' => memo['content'] }
+  end
+  @memos = escaping_memos(results) || []
   erb :index
 end
 
 # メモの詳細画面
 get '/memos/*' do |id|
-  memo = read_data.detect { |m| m['id'].to_i == id.to_i }
+  memo = read_db.detect { |m| m['id'].to_i == id.to_i }
   halt erb :not_found if memo.nil?
   @memo = escaping_memos([memo])[0]
   @title = 'Show'
@@ -43,60 +62,40 @@ get '/add' do
 end
 
 post '/memos' do
-  memos = read_data
-  new_id = memos ? memos.size : 0
+  memos = read_db
+  new_id = memos[0].nil? ? 0 : memos.size
   title = @params['title']
   content = @params['content']
-  new_memo = { 'id' => new_id, 'title' => title, 'content' => content }
-
-  if memos
-    memos << new_memo
-  else
-    memos = [new_memo]
-  end
-
-  File.open('data.json', 'w') do |f|
-    JSON.dump(memos, f)
-  end
+  connection_db.exec('INSERT INTO kgoa.todo values ($1, $2, $3)', [new_id, title, content])
 
   redirect '/'
 end
 
 # メモの編集
 get '/edit/*' do |id|
-  memo = read_data.detect { |m| m['id'].to_i == id.to_i }
+  # debugger
+  memo = connection_db.exec('SELECT * FROM kgoa.todo WHERE id = $1', [id])
   halt erb :not_found if memo.nil?
 
-  @memo = escaping_memos([memo])[0]
+  @memo = escaping_memos([memo][0])[0]
   @title = 'Edit'
   erb :edit_memo
 end
 
 patch '/memos/*' do |id|
-  memos = read_data
-  memos.each do |memo|
-    if memo['id'] == id.to_i
-      memo['title'] = @params['title']
-      memo['content'] = @params['content']
-    end
-  end
+  title = @params['title']
+  content = @params['content']
 
-  File.open('data.json', 'w') do |f|
-    JSON.dump(memos, f)
-  end
-
+  connection_db.exec('UPDATE kgoa.todo SET title = $1, content = $2 where id = $3', [title, content, id])
   redirect '/'
 end
 
 # メモの削除
 delete '/memos/*' do |id|
-  keeps = read_data.keep_if { |m| m['id'] != id.to_i }
-  keeps.each_with_index do |keep, idx|
-    keep['id'] = idx
-  end
+  connection_db.exec('DELETE FROM kgoa.todo WHERE id = $1', [id])
 
-  File.open('data.json', 'w') do |f|
-    JSON.dump(keeps, f)
+  read_db.each_with_index do |memo, i|
+    connection_db.exec('UPDATE kgoa.todo SET id=$1 where id=$2', [i, memo['id']])
   end
 
   redirect '/'
